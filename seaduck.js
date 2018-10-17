@@ -122,7 +122,7 @@ class Narrative {
     }
     return events;
   }
-  step() {
+  step(nActions=-1) {
     // step through the simulation
     // do nothing if story is over
     if (this.eventHistory.length > 0 &&
@@ -136,6 +136,7 @@ class Narrative {
     }
 
     let events = [];
+    let potentialActions = [];
     // for matches with two parameters
     for (let action of this.narrative.actions) {
       if (action.match.length == 2) {
@@ -144,18 +145,14 @@ class Narrative {
         let matchingB = this.narrative.nouns.filter(
           function(item) { return filterTagMatch(action.match[1], item); });
         let boundWhen = action.when.bind(this);
-        let boundAction = action.action.bind(this);
+        
         for (let objA of matchingA) {
           for (let objB of matchingB) {
             if (objA == objB) {
               continue;
             }
-            if (boundWhen(objA, objB)) {
-              for (let sEvent of boundAction(objA, objB)) {
-                this.eventHistory.push(sEvent);
-                events.push(sEvent);
-              }
-            }
+            if (boundWhen(objA, objB)) 
+              potentialActions.push([action, objA, objB]);
           }
         }
       }
@@ -164,14 +161,34 @@ class Narrative {
         let matching = this.narrative.nouns.filter(
           function(item) { return filterTagMatch(action.match[0], item); });
         let boundWhen = action.when.bind(this);
-        let boundAction = action.action.bind(this);
         for (let obj of matching) {
-          if (boundWhen(obj)) {
-            for (let sEvent of boundAction(obj)) {
-              this.eventHistory.push(sEvent);
-              events.push(sEvent);
-            }
-          }
+          if (boundWhen(obj)) 
+            potentialActions.push([action, obj]);
+        }
+      }
+    }
+
+    // Pop and execute some number of events
+    if (nActions == -1 || nActions > potentialActions.length) nActions = potentialActions.length;
+    let index = 0;
+    for (let i=0; i < nActions; i++) {
+      index = Math.floor(Math.random()*potentialActions.length);
+      let actionArray = potentialActions.splice(index, 1)[0];
+      let action = actionArray[0];
+      let boundAction = action.action.bind(this);
+      if (actionArray.length == 3) {
+        let objA = actionArray[1];
+        let objB = actionArray[2];
+        for (let sEvent of boundAction(objA, objB)) {
+          this.eventHistory.push(sEvent);
+          events.push(sEvent);
+        }
+      }
+      if (actionArray.length == 2) {
+        let obj = actionArray[1];
+        for (let sEvent of boundAction(obj)) {
+          this.eventHistory.push(sEvent);
+          events.push(sEvent);
         }
       }
     }
@@ -218,9 +235,9 @@ class Narrative {
     grammar.addModifiers(tracery.baseEngModifiers);
     return grammar.flatten("#"+ev.verb+"#");
   }
-  stepAndRender() {
+  stepAndRender(nActions=-1) {
     // combines step() and renderEvent()
-    let events = this.step();
+    let events = this.step(nActions);
     let rendered = [];
     for (let ev of events) {
       rendered.push(this.renderEvent(ev));
