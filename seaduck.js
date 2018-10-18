@@ -29,6 +29,8 @@ class Narrative {
     this.relations = new Map();
     this.eventHistory = [];
     this.stateHistory = [];
+    this.maxUnchangedStates = 1;
+    this.unchangedSteps = 0;
   }
   choice(t) {
     // convenience function for selecting among alternatives in a list
@@ -200,9 +202,14 @@ class Narrative {
 
     // if the last two states are identical, or no events generated, the end
     let shLen = this.stateHistory.length;
+    if (shLen >= 0 && this.stateHistory[shLen-1] == this.stateHistory[shLen-2]) 
+      this.unchangedSteps++;
+    else
+      this.unchangedSteps = 0;
+
     if (
-        (shLen >= 2 && this.stateHistory[shLen-1] == this.stateHistory[shLen-2]) ||
-        events.length == 0) {
+        (shLen >= 0 && this.unchangedSteps >= this.maxUnchangedStates ||
+        events.length == 0)) {
       // _end is a special sentinel value to signal the end of the narration
       this.eventHistory.push(new StoryEvent("_end"));
       events.push(new StoryEvent("_end"));

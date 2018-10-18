@@ -74,6 +74,8 @@ let model  = new seaduck.Narrative({
     }
 });
 
+model.maxUnchangedStates = 4;
+
 for (i=0; i<5; i++) {
     let storyEvents = model.stepAndRender(1);
     if (storyEvents.length > 0) {
